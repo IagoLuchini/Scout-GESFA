@@ -61,10 +61,6 @@ body {
   line-height: 1.45;
   color: var(--texto);
   background: var(--fundo);
-  background-image: url('logo.png');
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
 }
 
 h2 { margin: .2em 0 .6em; }
