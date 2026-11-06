@@ -258,20 +258,57 @@
       </select>
     </label>
 
-    <label class="campo">
-      <span>Descrição das alergias (Condicional)</span>
-      <textarea name="alergias" placeholder="Informe quais são as alergias..."></textarea>
-    </label>
+    
+<h4>5. Saúde e segurança</h4>
 
-    <label class="campo">
-      <span>Medicamentos utilizados (Condicional)</span>
-      <textarea name="medicamentos" placeholder="Informe os medicamentos e cuidados necessários..."></textarea>
-    </label>
+<label class="campo">
+  <span>Possui alergias? *</span>
+  <select name="alergia" required>
+    <option value="">Selecione</option>
+    <option value="nao">Não</option>
+    <option value="sim">Sim</option>
+  </select>
+</label>
 
-    <label class="campo">
-      <span>Restrições alimentares (Condicional)</span>
-      <textarea name="alimentacao" placeholder="Informe as restrições alimentares..."></textarea>
-    </label>
+<div id="campo-alergias" hidden>
+  <label class="campo">
+    <span>Quais alergias?</span>
+    <textarea name="alergias"></textarea>
+  </label>
+</div>
+
+<label class="campo">
+  <span>Utiliza medicamentos?</span>
+  <select name="usa_medicamento">
+    <option value="">Selecione</option>
+    <option value="nao">Não</option>
+    <option value="sim">Sim</option>
+  </select>
+</label>
+
+<div id="campo-medicamentos" hidden>
+  <label class="campo">
+    <span>Quais medicamentos?</span>
+    <textarea name="medicamentos"></textarea>
+  </label>
+</div>
+
+<label class="campo">
+  <span>Possui restrições alimentares?</span>
+  <select name="tem_restricao">
+    <option value="">Selecione</option>
+    <option value="nao">Não</option>
+    <option value="sim">Sim</option>
+  </select>
+</label>
+
+<div id="campo-alimentacao" hidden>
+  <label class="campo">
+    <span>Quais restrições?</span>
+    <textarea name="alimentacao"></textarea>
+  </label>
+</div>
+
 
     <label class="campo">
       <span>Cuidados importantes (Opcional)</span>
