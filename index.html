@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grupo Escoteiro - Entrar</title>
+<link rel="stylesheet" href="style.css">
+<style>[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<!-- ============ PÁGINA DE LOGIN ============
+     Depois de entrar, a pessoa é levada para o painel.html -->
+<main>
+
+  <!-- ENTRAR -->
+  <form id="form-entrar" class="card login">
+    <h2>⚜️ Grupo Escoteiro</h2>
+    <p class="muted">Entre com seu e-mail e senha.</p>
+    <input type="email" name="email" placeholder="E-mail" required autocomplete="username">
+    <input type="password" name="senha" placeholder="Senha" required autocomplete="current-password">
+    <button style="width:100%">Entrar</button>
+    <p class="msg muted"></p>
+    <p>
+      <button type="button" class="link" data-mostrar="form-cadastro">Ainda não tenho conta</button>
+      <button type="button" class="link" id="btn-esqueci">Esqueci a senha</button>
+    </p>
+  </form>
+
+  <!-- CRIAR CONTA -->
+  <form id="form-cadastro" class="card login" hidden>
+    <h2>⚜️ Criar conta</h2>
+    <p class="muted">Crie sua conta. O chefe vai liberar seu acesso depois.</p>
+    <input name="nome" placeholder="Seu nome completo" required>
+    <input type="email" name="email" placeholder="E-mail" required autocomplete="username">
+    <input type="password" name="senha" placeholder="Senha (mínimo 8 caracteres)" required minlength="8" autocomplete="new-password">
+    <button style="width:100%">Criar conta</button>
+    <p class="msg muted"></p>
+    <p><button type="button" class="link" data-mostrar="form-entrar">Já tenho conta</button></p>
+  </form>
+
+  <!-- NOVA SENHA (aparece quando a pessoa chega pelo link do e-mail "esqueci a senha") -->
+  <form id="form-nova-senha" class="card login" hidden>
+    <h2>Nova senha</h2>
+    <input type="password" name="senha" placeholder="Nova senha (mínimo 8 caracteres)" required minlength="8" autocomplete="new-password">
+    <button style="width:100%">Salvar nova senha</button>
+    <p class="msg muted"></p>
+  </form>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="login.js"></script>
+</body>
+</html>

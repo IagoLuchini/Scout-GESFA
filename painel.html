@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grupo Escoteiro</title>
+<link rel="stylesheet" href="style.css">
+<style>[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     PAINEL DO GRUPO  (só abre para quem fez login; senão volta ao index.html)
+
+     COMO EDITAR ESTE ARQUIVO (sem mexer em JavaScript):
+     • Títulos, textos, rótulos e campos dos formulários: edite aqui mesmo.
+     • data-so="chefe"  → o elemento só aparece para esse tipo de usuário.
+       Valores: chefe, responsavel, jovem, financeiro (pode juntar: "responsavel jovem").
+       ATENÇÃO: isso só esconde na tela. Quem realmente protege os dados é o Supabase.
+     • As partes <template> lá embaixo são o "molde" de cada item das listas.
+     • NÃO mude os id="..." , name="..." e data-f="..." : o JavaScript usa esses nomes.
+     ===================================================================== -->
+
+<header hidden id="topo">
+  <div class="brand">⚜️ Grupo Escoteiro</div>
+  <div class="quem">
+    <span id="quem-nome"></span>
+    <span class="badge" id="quem-papel"></span>
+    <button class="link" id="btn-sair" style="color:#fff">Sair</button>
+  </div>
+</header>
+
+<!-- MENU: cada botão aparece só para quem está em data-so -->
+<nav id="menu" hidden>
+  <button data-tela="avisos">Avisos</button>
+  <button data-tela="jovens" data-so="chefe">Jovens</button>
+  <button data-tela="presenca" data-so="chefe">Presença</button>
+  <button data-tela="usuarios" data-so="chefe">Usuários</button>
+  <button data-tela="filhos" data-so="responsavel">Meus filhos</button>
+  <button data-tela="meuperfil" data-so="jovem">Meu perfil</button>
+  <button data-tela="presencas" data-so="responsavel jovem">Presenças</button>
+  <button data-tela="financeiro" data-so="financeiro responsavel jovem">Financeiro</button>
+</nav>
+
+<main>
+
+  <section id="tela-carregando"><p class="muted">Carregando…</p></section>
+
+  <section id="tela-erro" hidden>
+    <div class="card login">
+      <p class="erro">Não foi possível carregar o seu perfil.</p>
+      <button onclick="sb.auth.signOut()">Sair</button>
+    </div>
+  </section>
+
+  <!-- ============ AGUARDANDO APROVAÇÃO ============ -->
+  <section id="tela-pendente" hidden>
+    <div class="card">
+      <h2>Cadastro recebido ✅</h2>
+      <p>Seu acesso ainda precisa ser liberado por um chefe do grupo. Avise-o e depois toque em "Verificar".</p>
+      <button id="btn-verificar">Verificar</button>
+    </div>
+  </section>
+
+  <!-- ============ AVISOS ============ -->
+  <section id="tela-avisos" hidden>
+    <form id="form-aviso" class="card" data-so="chefe">
+      <h3>Novo aviso</h3>
+      <input name="titulo" placeholder="Título" required>
+      <textarea name="texto" placeholder="Texto do aviso" rows="3"></textarea>
+      <button>Publicar</button>
+    </form>
+
+    <div id="lista-avisos"></div>
+    <p id="avisos-vazio" class="muted" hidden>Nenhum aviso por enquanto.</p>
+  </section>
+
+  <!-- ============ JOVENS (chefe) ============ -->
+  <section id="tela-jovens" hidden>
+    <form id="form-jovem-novo" class="card">
+      <h3>Cadastrar jovem</h3>
+      <label class="campo"><span>Nome</span><input name="nome" required></label>
+      <label class="campo"><span>Nascimento</span><input type="date" name="nascimento"></label>
+      <label class="campo"><span>Ramo</span>
+        <select name="ramo">
+          <option value="">Sem ramo</option>
+          <option value="lobinho">Lobinho</option>
+          <option value="escoteiro">Escoteiro</option>
+          <option value="senior">Sênior</option>
+          <option value="pioneiro">Pioneiro</option>
+        </select>
+      </label>
+      <button>Cadastrar</button>
+    </form>
+
+    <p class="muted" id="jovens-total"></p>
+    <input id="busca-jovem" placeholder="Buscar jovem pelo nome…">
+    <div id="lista-jovens"></div>
+    <p id="jovens-vazio" class="muted" hidden>Nenhum jovem encontrado.</p>
+  </section>
+
+  <!-- ============ FICHA DE UM JOVEM (chefe) ============ -->
+  <section id="tela-jovem" hidden>
+    <button class="link" data-ir="jovens">← Voltar</button>
+    <h2 id="jovem-nome"></h2>
+
+    <form id="form-jovem-dados" class="card">
+      <h3>Dados do jovem</h3>
+      <label class="campo"><span>Nome</span><input name="nome" required></label>
+      <label class="campo"><span>Nascimento</span><input type="date" name="nascimento"></label>
+      <label class="campo"><span>Ramo</span>
+        <select name="ramo">
+          <option value="">Sem ramo</option>
+          <option value="lobinho">Lobinho</option>
+          <option value="escoteiro">Escoteiro</option>
+          <option value="senior">Sênior</option>
+          <option value="pioneiro">Pioneiro</option>
+        </select>
+      </label>
+      <label class="campo"><span>Login do jovem (conta que ele mesmo criou e você marcou como "Jovem" em Usuários)</span>
+        <select name="user_id"></select>
+      </label>
+      <label class="chk"><input type="checkbox" name="ativo"> Jovem ativo no grupo</label>
+      <button>Salvar</button>
+    </form>
+
+    <div class="card">
+      <h3>Responsáveis</h3>
+      <div id="lista-vinculos"></div>
+      <p id="vinculos-vazio" class="muted" hidden>Nenhum responsável vinculado.</p>
+      <div class="flex">
+        <select id="vinc-resp"></select>
+        <button id="btn-vincular">Vincular</button>
+      </div>
+    </div>
+
+    <div id="ficha-jovem"></div>
+
+    <div class="card">
+      <h3>Presença</h3>
+      <p id="jovem-presenca"></p>
+    </div>
+
+    <button class="link perigo" id="btn-excluir-jovem">Excluir jovem</button>
+  </section>
+
+  <!-- ============ PRESENÇA: lista de reuniões (chefe) ============ -->
+  <section id="tela-presenca" hidden>
+    <form id="form-reuniao-nova" class="card">
+      <h3>Nova reunião / atividade</h3>
+      <label class="campo"><span>Data</span><input type="date" name="data" required></label>
+      <label class="campo"><span>Título</span><input name="titulo" placeholder="Ex.: Reunião de sábado" required></label>
+      <label class="campo"><span>Ramo</span>
+        <select name="ramo">
+          <option value="">Todos os ramos</option>
+          <option value="lobinho">Lobinho</option>
+          <option value="escoteiro">Escoteiro</option>
+          <option value="senior">Sênior</option>
+          <option value="pioneiro">Pioneiro</option>
+        </select>
+      </label>
+      <button>Criar e fazer a chamada</button>
+    </form>
+    <div id="lista-reunioes"></div>
+  </section>
+
+  <!-- ============ PRESENÇA: chamada de uma reunião (chefe) ============ -->
+  <section id="tela-reuniao" hidden>
+    <button class="link" data-ir="presenca">← Voltar</button>
+    <h2 id="reuniao-titulo"></h2>
+    <p class="muted" id="reuniao-info"></p>
+
+    <div class="card">
+      <div class="flex">
+        <button class="link" id="btn-marcar-todos">Marcar todos</button>
+        <button class="link" id="btn-desmarcar-todos">Desmarcar todos</button>
+      </div>
+      <div id="chamada"></div>
+      <p id="chamada-vazia" class="muted" hidden>Nenhum jovem ativo neste ramo.</p>
+      <button id="btn-salvar-chamada">Salvar chamada</button>
+    </div>
+
+    <button class="link perigo" id="btn-excluir-reuniao">Excluir reunião</button>
+  </section>
+
+  <!-- ============ USUÁRIOS (chefe) ============ -->
+  <section id="tela-usuarios" hidden>
+    <p class="muted">Aprove quem se cadastrou escolhendo o papel. Marque "Financeiro" para quem cuida do caixa.</p>
+    <div id="lista-usuarios"></div>
+  </section>
+
+  <!-- ============ MEUS FILHOS (responsável) ============ -->
+  <section id="tela-filhos" hidden>
+    <div class="card" id="filhos-vazio" hidden>
+      <p>Nenhum jovem está vinculado à sua conta ainda. Peça a um chefe do grupo para fazer o vínculo.</p>
+    </div>
+    <div id="lista-filhos"></div>
+  </section>
+
+  <!-- ============ MEU PERFIL (jovem) ============ -->
+  <section id="tela-meuperfil" hidden>
+    <div class="card" id="meuperfil-bloqueado" hidden>
+      <h2>Acesso ainda não liberado</h2>
+      <p>Para ver seus dados, seu responsável precisa autorizar seu acesso no app, e o chefe precisa ligar seu login ao seu cadastro.</p>
+    </div>
+    <div class="card" id="meuperfil-dados" hidden>
+      <h2 id="mp-nome"></h2>
+      <p>Ramo: <span id="mp-ramo"></span></p>
+      <p>Nascimento: <span id="mp-nasc"></span></p>
+      <p id="mp-presenca"></p>
+    </div>
+  </section>
+
+  <!-- ============ PRESENÇAS (responsável / jovem) ============ -->
+  <section id="tela-presencas" hidden>
+    <div id="lista-presencas"></div>
+    <div class="card" id="presencas-vazio" hidden>
+      <p class="muted">Nenhuma presença registrada ainda (ou o acesso ainda não foi liberado).</p>
+    </div>
+  </section>
+
+  <!-- ============ FINANCEIRO / PAGAMENTOS ============ -->
+  <section id="tela-financeiro" hidden>
+    <div class="grid3">
+      <div class="card kpi ok"><small>Recebido</small><b id="kpi-recebido"></b></div>
+      <div class="card kpi"><small>Em aberto</small><b id="kpi-aberto"></b></div>
+      <div class="card kpi bad"><small>Atrasado</small><b id="kpi-atrasado"></b></div>
+    </div>
+
+    <!-- só quem é do financeiro vê este formulário -->
+    <form id="form-lanc" class="card" data-so="financeiro">
+      <h3>Novo lançamento</h3>
+      <label class="campo"><span>Jovem</span><select name="jovem"></select></label>
+      <label class="campo"><span>Descrição</span><input name="descricao" placeholder="Ex.: Mensalidade novembro" required></label>
+      <label class="campo"><span>Valor (R$)</span><input type="number" step="0.01" min="0" name="valor" placeholder="0,00" required></label>
+      <label class="campo"><span>Vencimento</span><input type="date" name="vencimento" required></label>
+      <button>Lançar</button>
+    </form>
+
+    <!-- quem não é do financeiro só visualiza -->
+    <p class="muted" id="fin-leitura" hidden>Somente visualização. Dúvidas sobre pagamentos? Fale com o financeiro do grupo.</p>
+
+    <div class="flex">
+      <select id="fin-status">
+        <option value="">Todos os status</option>
+        <option value="aberto">Em aberto</option>
+        <option value="atrasado">Atrasados</option>
+        <option value="pago">Pagos</option>
+      </select>
+      <select id="fin-nome"></select>
+    </div>
+
+    <div class="card tabela">
+      <table>
+        <thead>
+          <tr>
+            <th>Jovem</th><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th>
+            <th data-so="financeiro">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="fin-corpo"></tbody>
+      </table>
+      <p id="fin-vazio" class="muted" hidden>Nenhum lançamento encontrado.</p>
+    </div>
+
+    <button class="link" id="btn-csv" data-so="financeiro">⬇ Baixar planilha (CSV)</button>
+  </section>
+
+</main>
+
+
+<!-- =====================================================================
+     MOLDES (templates) — o visual de cada item das listas.
+     O JavaScript copia o molde e preenche os campos data-f="..."
+     ===================================================================== -->
+
+<template id="tpl-aviso">
+  <div class="card">
+    <h3 data-f="titulo"></h3>
+    <p class="pre" data-f="texto"></p>
+    <small class="muted" data-f="data"></small>
+    <button class="link perigo" data-f="excluir">Excluir</button>
+  </div>
+</template>
+
+<template id="tpl-jovem-item">
+  <div class="row clic">
+    <b data-f="nome"></b>
+    <span class="muted" data-f="ramo"></span>
+  </div>
+</template>
+
+<template id="tpl-vinculo">
+  <div class="row">
+    <div>
+      <b data-f="nome"></b><br>
+      <small class="muted" data-f="info"></small>
+    </div>
+    <button class="link perigo" data-f="remover">Remover</button>
+  </div>
+</template>
+
+<template id="tpl-reuniao-item">
+  <div class="row clic">
+    <span><b data-f="data"></b> · <span data-f="titulo"></span></span>
+    <span class="muted" data-f="ramo"></span>
+  </div>
+</template>
+
+<template id="tpl-usuario">
+  <div class="card">
+    <b data-f="nome"></b><br>
+    <small class="muted" data-f="email"></small><br><br>
+    <label class="campo"><span>Papel</span>
+      <select data-f="papel">
+        <option value="pendente">Aguardando aprovação</option>
+        <option value="chefe">Chefe</option>
+        <option value="responsavel">Responsável</option>
+        <option value="jovem">Jovem</option>
+      </select>
+    </label>
+    <label class="chk"><input type="checkbox" data-f="financeiro"> Acesso ao financeiro</label>
+    <button data-f="salvar">Salvar</button>
+  </div>
+</template>
+
+<template id="tpl-filho">
+  <div>
+    <div class="card">
+      <h2 data-f="nome"></h2>
+      <p class="muted" data-f="info"></p>
+
+      <p class="muted" data-f="consent-ok" hidden></p>
+      <div class="aviso-lgpd" data-f="consent-pendente" hidden>
+        <p>Os dados do seu filho(a) (identificação, ficha de saúde, presença e pagamentos) são usados apenas para a gestão do grupo escoteiro e ficam visíveis somente a quem precisa deles. Você pode pedir correção ou exclusão a qualquer momento ao chefe do grupo.</p>
+        <button data-f="btn-consent">Li e autorizo o uso dos dados</button>
+      </div>
+
+      <h3>Procuração / acesso do jovem</h3>
+      <label class="chk"><input type="checkbox" data-f="acesso"> Autorizo meu filho(a) a acessar o app com login próprio (somente visualização)</label>
+    </div>
+    <div data-f="ficha"></div>
+  </div>
+</template>
+
+<template id="tpl-ficha">
+  <form class="card">
+    <h3>Ficha médica</h3>
+    <small class="muted">Visível somente para chefes e responsáveis deste jovem.</small>
+    <label class="campo"><span>Alergias</span><textarea name="alergias" rows="2"></textarea></label>
+    <label class="campo"><span>Medicamentos de uso contínuo</span><textarea name="medicamentos" rows="2"></textarea></label>
+    <label class="campo"><span>Plano de saúde / carteirinha</span><input name="plano_saude"></label>
+    <label class="campo"><span>Contato de emergência (nome)</span><input name="contato_emergencia"></label>
+    <label class="campo"><span>Telefone de emergência</span><input name="telefone_emergencia"></label>
+    <label class="campo"><span>Outras observações de saúde</span><textarea name="observacoes" rows="2"></textarea></label>
+    <button>Salvar ficha</button>
+  </form>
+</template>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="painel.js"></script>
+</body>
+</html>
