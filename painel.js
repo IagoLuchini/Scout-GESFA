@@ -453,3 +453,115 @@ const TELAS = {
 };
 
 iniciar();
+
+
+// ======================================
+// 1. CAMPOS CONDICIONAIS
+// ======================================
+
+function configurarCampo(selectName, divId, textareaName) {
+
+  const select = document.querySelector(`[name="${selectName}"]`);
+  const div = document.getElementById(divId);
+  const textarea = document.querySelector(`[name="${textareaName}"]`);
+
+  function atualizar() {
+
+    const ativo = select.value === "sim";
+
+    div.hidden = !ativo;
+    textarea.required = ativo;
+    textarea.disabled = !ativo;
+
+  }
+
+  select.addEventListener("change", atualizar);
+
+  atualizar();
+}
+
+// Configurando os três campos
+
+configurarCampo("alergia", "campo-alergias", "alergias");
+
+configurarCampo("usa_medicamento", "campo-medicamentos", "medicamentos");
+
+configurarCampo("tem_restricao", "campo-alimentacao", "alimentacao");
+
+
+// ======================================
+// 2. MÁSCARA DE CPF
+// ======================================
+
+function mascaraCPF(valor) {
+
+  return valor
+    .replace(/\D/g, "")
+    .slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+}
+
+document.querySelectorAll('[name="cpf"], [name="cpf1"], [name="cpf2"]')
+.forEach(campo => {
+
+  campo.addEventListener("input", () => {
+    campo.value = mascaraCPF(campo.value);
+  });
+
+});
+
+
+// ======================================
+// 3. MÁSCARA DE CEP
+// ======================================
+
+const campoCEP = document.querySelector('[name="cep"]');
+
+campoCEP.addEventListener("input", () => {
+
+  let valor = campoCEP.value.replace(/\D/g, "").slice(0, 8);
+
+  if (valor.length > 5) {
+    valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
+  }
+
+  campoCEP.value = valor;
+
+});
+
+
+// ======================================
+// 4. MÁSCARA DE TELEFONE
+// ======================================
+
+document.querySelectorAll(
+  '[name="telefone"], [name="tel1"], [name="tel2"], [name="tel_emergencia"], [name="tel_emergencia2"]'
+).forEach(campo => {
+
+  campo.addEventListener("input", () => {
+
+    let valor = campo.value.replace(/\D/g, "").slice(0, 11);
+
+    if (valor.length > 10) {
+      valor = valor.replace(
+        /^(\d{2})(\d{5})(\d{4})$/,
+        "($1) $2-$3"
+      );
+    } else if (valor.length > 6) {
+      valor = valor.replace(
+        /^(\d{2})(\d{4})(\d{1,4})$/,
+        "($1) $2-$3"
+      );
+    } else if (valor.length > 2) {
+      valor = valor.replace(/^(\d{2})(\d+)/, "($1) $2");
+    }
+
+    campo.value = valor;
+
+  });
+
+});
+
