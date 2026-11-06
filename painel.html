@@ -76,28 +76,303 @@
   </section>
 
   <!-- ============ JOVENS (chefe) ============ -->
-  <section id="tela-jovens" hidden>
-    <form id="form-jovem-novo" class="card">
-      <h3>Cadastrar jovem</h3>
-      <label class="campo"><span>Nome</span><input name="nome" required></label>
-      <label class="campo"><span>Nascimento</span><input type="date" name="nascimento"></label>
-      <label class="campo"><span>Ramo</span>
-        <select name="ramo">
-          <option value="">Sem ramo</option>
-          <option value="lobinho">Lobinho</option>
-          <option value="escoteiro">Escoteiro</option>
-          <option value="senior">Sênior</option>
-          <option value="pioneiro">Pioneiro</option>
-        </select>
-      </label>
-      <button>Cadastrar</button>
-    </form>
+  
+<section id="tela-jovens" hidden>
+  <form id="form-jovem-novo" class="card">
 
-    <p class="muted" id="jovens-total"></p>
-    <input id="busca-jovem" placeholder="Buscar jovem pelo nome…">
-    <div id="lista-jovens"></div>
-    <p id="jovens-vazio" class="muted" hidden>Nenhum jovem encontrado.</p>
-  </section>
+    <h3>Cadastrar jovem</h3>
+    <p class="muted">
+      Preencha os dados do jovem e de seus responsáveis.
+      Os campos marcados com * são obrigatórios.
+    </p>
+
+    <!-- 1. DADOS PESSOAIS -->
+    <h4>1. Dados pessoais</h4>
+
+    <label class="campo">
+      <span>Nome completo *</span>
+      <input name="nome" required>
+    </label>
+
+    <label class="campo">
+      <span>Data de nascimento *</span>
+      <input type="date" name="nascimento" required>
+    </label>
+
+    <label class="campo">
+      <span>CPF *</span>
+      <input type="text" name="cpf" maxlength="14" required>
+    </label>
+
+    <label class="campo">
+      <span>RG (Recomendado)</span>
+      <input type="text" name="rg">
+    </label>
+
+    <label class="campo">
+      <span>E-mail (Opcional)</span>
+      <input type="email" name="email">
+    </label>
+
+    <label class="campo">
+      <span>Telefone (Opcional)</span>
+      <input type="tel" name="telefone">
+    </label>
+
+
+    <!-- 2. ENDEREÇO -->
+    <h4>2. Endereço</h4>
+
+    <label class="campo">
+      <span>CEP (Recomendado)</span>
+      <input type="text" name="cep">
+    </label>
+
+    <label class="campo">
+      <span>Rua / Avenida *</span>
+      <input name="endereco" required>
+    </label>
+
+    <label class="campo">
+      <span>Número *</span>
+      <input name="numero" required>
+    </label>
+
+    <label class="campo">
+      <span>Complemento (Opcional)</span>
+      <input name="complemento">
+    </label>
+
+    <label class="campo">
+      <span>Bairro *</span>
+      <input name="bairro" required>
+    </label>
+
+    <label class="campo">
+      <span>Cidade *</span>
+      <input name="cidade" required>
+    </label>
+
+    <label class="campo">
+      <span>Estado *</span>
+      <select name="estado" required>
+        <option value="">Selecione</option>
+        <option value="SP">São Paulo</option>
+        <option value="RJ">Rio de Janeiro</option>
+        <option value="MG">Minas Gerais</option>
+        <option value="ES">Espírito Santo</option>
+        <option value="PR">Paraná</option>
+        <option value="SC">Santa Catarina</option>
+        <option value="RS">Rio Grande do Sul</option>
+        <option value="BA">Bahia</option>
+        <option value="GO">Goiás</option>
+        <option value="DF">Distrito Federal</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </label>
+
+
+    <!-- 3. RESPONSÁVEIS -->
+    <h4>3. Responsáveis</h4>
+
+    <label class="campo">
+      <span>Nome do responsável 1 *</span>
+      <input name="resp1" required>
+    </label>
+
+    <label class="campo">
+      <span>CPF do responsável 1 (Recomendado)</span>
+      <input type="text" name="cpf1" maxlength="14">
+    </label>
+
+    <label class="campo">
+      <span>Telefone do responsável 1 *</span>
+      <input type="tel" name="tel1" required>
+    </label>
+
+    <label class="campo">
+      <span>E-mail do responsável 1 (Recomendado)</span>
+      <input type="email" name="email1">
+    </label>
+
+    <label class="campo">
+      <span>Nome do responsável 2 (Opcional)</span>
+      <input name="resp2">
+    </label>
+
+    <label class="campo">
+      <span>CPF do responsável 2 (Opcional)</span>
+      <input type="text" name="cpf2" maxlength="14">
+    </label>
+
+    <label class="campo">
+      <span>Telefone do responsável 2 (Opcional)</span>
+      <input type="tel" name="tel2">
+    </label>
+
+    <label class="campo">
+      <span>E-mail do responsável 2 (Opcional)</span>
+      <input type="email" name="email2">
+    </label>
+
+
+    <!-- 4. INFORMAÇÕES ESCOTEIRAS -->
+    <h4>4. Informações escoteiras</h4>
+
+    <label class="campo">
+      <span>Ramo *</span>
+      <select name="ramo" required>
+        <option value="">Selecione</option>
+        <option value="lobinho">Lobinho</option>
+        <option value="escoteiro">Escoteiro</option>
+        <option value="senior">Sênior</option>
+        <option value="pioneiro">Pioneiro</option>
+      </select>
+    </label>
+
+    <label class="campo">
+      <span>Patrulha (Opcional)</span>
+      <input name="patrulha">
+    </label>
+
+    <label class="campo">
+      <span>Data de ingresso (Recomendado)</span>
+      <input type="date" name="ingresso">
+    </label>
+
+    <label class="campo">
+      <span>Registro escoteiro (Recomendado)</span>
+      <input name="registro">
+    </label>
+
+
+    <!-- 5. SAÚDE E SEGURANÇA -->
+    <h4>5. Saúde e segurança</h4>
+
+    <label class="campo">
+      <span>Possui alergias? *</span>
+      <select name="alergia" id="alergia" required>
+        <option value="">Selecione</option>
+        <option value="nao">Não</option>
+        <option value="sim">Sim</option>
+      </select>
+    </label>
+
+    <label class="campo">
+      <span>Descrição das alergias (Condicional)</span>
+      <textarea name="alergias" placeholder="Informe quais são as alergias..."></textarea>
+    </label>
+
+    <label class="campo">
+      <span>Medicamentos utilizados (Condicional)</span>
+      <textarea name="medicamentos" placeholder="Informe os medicamentos e cuidados necessários..."></textarea>
+    </label>
+
+    <label class="campo">
+      <span>Restrições alimentares (Condicional)</span>
+      <textarea name="alimentacao" placeholder="Informe as restrições alimentares..."></textarea>
+    </label>
+
+    <label class="campo">
+      <span>Cuidados importantes (Opcional)</span>
+      <textarea name="cuidados"></textarea>
+    </label>
+
+    <label class="campo">
+      <span>Tipo sanguíneo (Opcional)</span>
+      <select name="sangue">
+        <option value="">Não informado</option>
+        <option value="A+">A+</option>
+        <option value="A-">A-</option>
+        <option value="B+">B+</option>
+        <option value="B-">B-</option>
+        <option value="AB+">AB+</option>
+        <option value="AB-">AB-</option>
+        <option value="O+">O+</option>
+        <option value="O-">O-</option>
+      </select>
+    </label>
+
+
+    <!-- 6. EMERGÊNCIA -->
+    <h4>6. Contato de emergência</h4>
+
+    <label class="campo">
+      <span>Nome do contato de emergência *</span>
+      <input name="emergencia" required>
+    </label>
+
+    <label class="campo">
+      <span>Telefone do contato *</span>
+      <input type="tel" name="tel_emergencia" required>
+    </label>
+
+    <label class="campo">
+      <span>Grau de parentesco (Recomendado)</span>
+      <input name="parentesco">
+    </label>
+
+    <label class="campo">
+      <span>Segundo contato de emergência (Opcional)</span>
+      <input name="emergencia2">
+    </label>
+
+    <label class="campo">
+      <span>Telefone do segundo contato (Opcional)</span>
+      <input type="tel" name="tel_emergencia2">
+    </label>
+
+
+    <!-- 7. AUTORIZAÇÕES -->
+    <h4>7. Autorizações</h4>
+
+    <label class="campo">
+      <span>Autorização do responsável para participação *</span>
+      <select name="autorizacao" required>
+        <option value="">Selecione</option>
+        <option value="sim">Autorizado</option>
+        <option value="nao">Não autorizado</option>
+      </select>
+    </label>
+
+    <label class="campo">
+      <span>Autorização de uso de imagem (Opcional)</span>
+      <select name="imagem">
+        <option value="">Não informado</option>
+        <option value="sim">Autorizado</option>
+        <option value="nao">Não autorizado</option>
+      </select>
+    </label>
+
+    <label class="campo">
+      <span>Pessoas autorizadas a buscar (Recomendado)</span>
+      <textarea name="busca" placeholder="Nome e telefone das pessoas autorizadas..."></textarea>
+    </label>
+
+    <label class="campo">
+      <span>Observações adicionais (Opcional)</span>
+      <textarea name="observacoes"></textarea>
+    </label>
+
+
+    <!-- CADASTRO -->
+    <button type="submit">Cadastrar jovem</button>
+
+  </form>
+
+  <p class="muted" id="jovens-total"></p>
+
+  <input id="busca-jovem"
+    placeholder="Buscar jovem pelo nome...">
+
+  <div id="lista-jovens"></div>
+
+  <p id="jovens-vazio" class="muted" hidden>
+    Nenhum jovem encontrado.
+  </p>
+
+</section>
+
 
   <!-- ============ FICHA DE UM JOVEM (chefe) ============ -->
   <section id="tela-jovem" hidden>
