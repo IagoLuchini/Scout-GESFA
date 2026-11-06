@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grupo Escoteiro</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    /* =====================================================================
+   CONFIGURAÇÃO — troque as 2 linhas abaixo (veja o GUIA.md, passo 5)
+   Use a chave "anon" / "publishable". NUNCA use a "service_role" / "secret".
+   ===================================================================== */
+const SUPABASE_URL = 'https://uwyvzkbkoehidgdlnkaw.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ZbUg_GhsGSMiRN9WltpSaA_z-HH6wmb';
+
+/* ---------- utilidades ---------- */
+const $app = document.getElementById('app');
+const state = { user: null, perfil: null, view: null, recuperando: false };
+let sb;
+
+const RAMOS = { lobinho: 'Lobinho', escoteiro: 'Escoteiro', senior: 'Sênior', pioneiro: 'Pioneiro' };
+const PAPEL = { pendente: 'Aguardando aprovação', chefe: 'Chefe', responsavel: 'Responsável', jovem: 'Jovem' };
+
+const hoje = () => new Date().toLocaleDateString('sv-SE'); // AAAA-MM-DD (hora local)
+const brl = n => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(n) || 0);
+const dt = d => d ? d.split('-').reverse().join('/') : '—';
+
+// Cria elementos sem innerHTML (evita injeção de código nos textos digitados)
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+    else if (k === 'class') el.className = v;
+    else if (k === 'value') el.value = v;
+    else if (k === 'checked') el.checked = !!v;
+    else if (k === 'selected') el.selected = !!v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const campo = (rotulo, el) => h('label', { class: 'campo' }, h('span', {}, rotulo), el);
+function sel(opts, val, attrs) {
+  const s = h('select', attrs || {});
+  opts.forEach(([v, t]) => s.append(h('option', { value: v, selected: String(v) === String(val ?? '') }, t)));
+  return s;
+}
+function toast(msg, erro) {
+  const t = h('div', { class: 'toast' + (erro ? ' erro' : '') }, msg);
+  document.body.append(t);
+  setTimeout(() => t.remove(), 3800);
+}
+async function ok(promise) {
+  const { data, error } = await promise;
+  if (error) { toast(error.message, true); throw error; }
+  return data;
+}
+const run = fn => async (...a) => { try { await fn(...a); } catch (e) { console.error(e); } };
+const traduz = m => /Invalid login credentials/i.test(m) ? 'E-mail ou senha incorretos.'
+  : /already registered/i.test(m) ? 'Este e-mail já está cadastrado.'
+  : /Email not confirmed/i.test(m) ? 'Confirme seu e-mail antes de entrar (veja também o spam).'
+  : /rate limit/i.test(m) ? 'Muitas tentativas. Aguarde um pouco e tente de novo.' : m;
+
+/* ---------- login / cadastro ---------- */
+function renderLogin(modo = 'entrar') {
+  const email = h('input', { type: 'email', placeholder: 'E-mail', required: true, autocomplete: 'username' });
+  const senha = h('input', { type: 'password', placeholder: 'Senha (mínimo 8 caracteres)', required: true, minlength: '8',
+    autocomplete: modo === 'entrar' ? 'current-password' : 'new-password' });
+  const nome = modo === 'cadastro' ? h('input', { placeholder: 'Seu nome completo', required: true }) : null;
+  const msg = h('p', { class: 'muted' });
+
+  const form = h('form', { class: 'card login', onsubmit: async e => {
+    e.preventDefault(); msg.textContent = ''; msg.className = 'muted';
+    try {
+      if (modo === 'entrar') {
+        const { error } = await sb.auth.signInWithPassword({ email: email.value.trim(), password: senha.value });
+        if (error) throw error;
+      } else {
+        const { data, error } = await sb.auth.signUp({ email: email.value.trim(), password: senha.value,
+          options: { data: { nome: nome.value.trim() }, emailRedirectTo: location.href.split('#')[0].split('?')[0] } });
+        if (error) throw error;
+        if (!data.session) msg.textContent = 'Cadastro criado! Confirme seu e-mail (veja também o spam) e depois volte para entrar.';
+      }
+    } catch (err) { msg.textContent = traduz(err.message); msg.className = 'erro'; }
+  } },
+    h('h2', {}, '⚜️ Grupo Escoteiro'),
+    h('p', { class: 'muted' }, modo === 'entrar' ? 'Entre com seu e-mail e senha.' : 'Crie sua conta. O chefe vai liberar seu acesso depois.'),
+    nome, email, senha,
+    h('button', { style: 'width:100%' }, modo === 'entrar' ? 'Entrar' : 'Criar conta'),
+    msg,
+    h('p', {},
+      h('button', { type: 'button', class: 'link', onclick: () => renderLogin(modo === 'entrar' ? 'cadastro' : 'entrar') },
+        modo === 'entrar' ? 'Ainda não tenho conta' : 'Já tenho conta'),
+      modo === 'entrar' ? h('button', { type: 'button', class: 'link', onclick: async () => {
+        if (!email.value.trim()) { msg.textContent = 'Digite seu e-mail acima primeiro.'; msg.className = 'erro'; return; }
+        const { error } = await sb.auth.resetPasswordForEmail(email.value.trim(), { redirectTo: location.href.split('#')[0].split('?')[0] });
+        msg.className = error ? 'erro' : 'muted';
+        msg.textContent = error ? traduz(error.message) : 'Se o e-mail existir, enviamos um link para criar uma nova senha.';
+      } }, 'Esqueci a senha') : null));
+  $app.replaceChildren(form);
+}
+
+function renderRecovery() {
+  state.recuperando = true;
+  const s = h('input', { type: 'password', placeholder: 'Nova senha (mínimo 8 caracteres)', required: true, minlength: '8', autocomplete: 'new-password' });
+  const msg = h('p', { class: 'erro' });
+  $app.replaceChildren(h('form', { class: 'card login', onsubmit: async e => {
+    e.preventDefault();
+    const { error } = await sb.auth.updateUser({ password: s.value });
+    if (error) { msg.textContent = traduz(error.message); return; }
+    state.recuperando = false; toast('Senha alterada!');
+    const { data } = await sb.auth.getSession(); boot(data.session);
+  } }, h('h2', {}, 'Nova senha'), s, h('button', { style: 'width:100%' }, 'Salvar nova senha'), msg));
+}
+
+/* ---------- inicialização ---------- */
+async function boot(session) {
+  if (state.recuperando) return;
+  if (!session) { state.user = null; state.perfil = null; renderLogin(); return; }
+  state.user = session.user;
+  const { data, error } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+  if (error) { $app.replaceChildren(h('div', { class: 'card login' }, h('p', { class: 'erro' }, 'Erro ao carregar seu perfil: ' + error.message), h('button', { onclick: sair }, 'Sair'))); return; }
+  state.perfil = data;
+  renderShell();
+}
+const sair = () => sb.auth.signOut();
+
+function menuItens() {
+  const p = state.perfil, m = [{ id: 'avisos', t: 'Avisos' }];
+  if (p.papel === 'chefe') m.push({ id: 'jovens', t: 'Jovens' }, { id: 'presenca', t: 'Presença' }, { id: 'usuarios', t: 'Usuários' });
+  if (p.papel === 'responsavel') m.push({ id: 'filhos', t: 'Meus filhos' }, { id: 'presencas', t: 'Presenças' });
+  if (p.papel === 'jovem') m.push({ id: 'meuperfil', t: 'Meu perfil' }, { id: 'presencas', t: 'Presenças' });
+  if (p.is_financeiro) m.push({ id: 'financeiro', t: 'Financeiro' });
+  else if (p.papel !== 'chefe') m.push({ id: 'financeiro', t: 'Pagamentos' });
+  return m;
+}
+
+function renderShell() {
+  const p = state.perfil;
+  const topo = h('header', {},
+    h('div', { class: 'brand' }, '⚜️ Grupo Escoteiro'),
+    h('div', { class: 'quem' }, p.nome || p.email, h('span', { class: 'badge' }, PAPEL[p.papel] + (p.is_financeiro ? ' + Financeiro' : '')),
+      h('button', { class: 'link', style: 'color:#fff', onclick: sair }, 'Sair')));
+  if (p.papel === 'pendente') {
+    $app.replaceChildren(topo, h('main', {}, h('div', { class: 'card' },
+      h('h2', {}, 'Cadastro recebido ✅'),
+      h('p', {}, 'Seu acesso ainda precisa ser liberado por um chefe do grupo. Avise-o e depois toque em "Verificar".'),
+      h('button', { onclick: async () => { const { data } = await sb.auth.getSession(); boot(data.session); } }, 'Verificar'))));
+    return;
+  }
+  const nav = h('nav', {}, ...menuItens().map(i => h('button', { 'data-id': i.id, onclick: () => go(i.id) }, i.t)));
+  $app.replaceChildren(topo, nav, h('main', { id: 'main' }));
+  go('avisos');
+}
+
+async function go(id, arg) {
+  state.view = id;
+  const base = ({ jovem: 'jovens', reuniao: 'presenca' })[id] || id;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.id === base));
+  const m = document.getElementById('main');
+  m.replaceChildren(h('p', { class: 'muted' }, 'Carregando…'));
+  try { m.replaceChildren(await VIEWS[id](arg)); }
+  catch (e) { console.error(e); m.replaceChildren(h('p', { class: 'erro' }, 'Não foi possível carregar esta tela. ' + (e.message || ''))); }
+  window.scrollTo(0, 0);
+}
+
+/* ---------- AVISOS ---------- */
+async function vAvisos() {
+  const avisos = await ok(sb.from('avisos').select('*').order('criado_em', { ascending: false }).limit(50));
+  const box = h('div', {});
+  if (state.perfil.papel === 'chefe') {
+    const t = h('input', { placeholder: 'Título', required: true });
+    const x = h('textarea', { placeholder: 'Texto do aviso', rows: 3 });
+    box.append(h('form', { class: 'card', onsubmit: run(async e => {
+      e.preventDefault();
+      await ok(sb.from('avisos').insert({ titulo: t.value.trim(), texto: x.value.trim() }));
+      toast('Aviso publicado'); go('avisos');
+    }) }, h('h3', {}, 'Novo aviso'), t, x, h('button', {}, 'Publicar')));
+  }
+  if (!avisos.length) box.append(h('p', { class: 'muted' }, 'Nenhum aviso por enquanto.'));
+  avisos.forEach(a => box.append(h('div', { class: 'card' },
+    h('h3', {}, a.titulo), h('p', { class: 'pre' }, a.texto || ''),
+    h('small', { class: 'muted' }, new Date(a.criado_em).toLocaleDateString('pt-BR')),
+    state.perfil.papel === 'chefe' ? h('button', { class: 'link perigo', onclick: run(async () => {
+      if (!confirm('Excluir este aviso?')) return;
+      await ok(sb.from('avisos').delete().eq('id', a.id)); go('avisos');
+    }) }, 'Excluir') : null)));
+  return box;
+}
+
+/* ---------- JOVENS (chefe) ---------- */
+async function vJovens() {
+  const jovens = await ok(sb.from('jovens').select('*').order('nome'));
+  const lista = h('div', {});
+  const busca = h('input', { placeholder: 'Buscar jovem pelo nome…', oninput: () => desenha() });
+  function desenha() {
+    const f = busca.value.toLowerCase();
+    const itens = jovens.filter(j => j.nome.toLowerCase().includes(f));
+    lista.replaceChildren(...(itens.length
+      ? itens.map(j => h('div', { class: 'row clic', onclick: () => go('jovem', j.id) },
+          h('b', {}, j.nome), h('span', { class: 'muted' }, (RAMOS[j.ramo] || 'sem ramo') + (j.ativo ? '' : ' · inativo'))))
+      : [h('p', { class: 'muted' }, 'Nenhum jovem encontrado.')]));
+  }
+  const nome = h('input', { placeholder: 'Nome completo', required: true });
+  const nasc = h('input', { type: 'date' });
+  const ramo = sel([['', 'Sem ramo'], ...Object.entries(RAMOS)], '');
+  const novo = h('form', { class: 'card', onsubmit: run(async e => {
+    e.preventDefault();
+    const j = await ok(sb.from('jovens').insert({ nome: nome.value.trim(), nascimento: nasc.value || null, ramo: ramo.value || null }).select().single());
+    toast('Jovem cadastrado'); go('jovem', j.id);
+  }) }, h('h3', {}, 'Cadastrar jovem'), campo('Nome', nome), campo('Nascimento', nasc), campo('Ramo', ramo), h('button', {}, 'Cadastrar'));
+  desenha();
+  return h('div', {}, novo, h('p', { class: 'muted' }, jovens.length + ' jovem(ns) cadastrado(s)'), busca, lista);
+}
+
+function fichaForm(jovemId, f) {
+  f = f || {};
+  const campos = { alergias: 'Alergias', medicamentos: 'Medicamentos de uso contínuo', plano_saude: 'Plano de saúde / carteirinha',
+    contato_emergencia: 'Contato de emergência (nome)', telefone_emergencia: 'Telefone de emergência', observacoes: 'Outras observações de saúde' };
+  const els = {};
+  const form = h('form', { class: 'card', onsubmit: run(async e => {
+    e.preventDefault();
+    const row = { jovem_id: jovemId, atualizado_em: new Date().toISOString() };
+    for (const k in els) row[k] = els[k].value.trim() || null;
+    await ok(sb.from('fichas_medicas').upsert(row));
+    toast('Ficha salva');
+  }) }, h('h3', {}, 'Ficha médica'), h('small', { class: 'muted' }, 'Visível somente para chefes e responsáveis deste jovem.'));
+  for (const [k, t] of Object.entries(campos)) {
+    els[k] = ['alergias', 'medicamentos', 'observacoes'].includes(k)
+      ? h('textarea', { rows: 2, value: f[k] || '' }) : h('input', { value: f[k] || '' });
+    form.append(campo(t, els[k]));
+  }
+  form.append(h('button', {}, 'Salvar ficha'));
+  return form;
+}
+
+async function vJovem(id) {
+  const [j, vincs, profs, ficha, pres] = await Promise.all([
+    ok(sb.from('jovens').select('*').eq('id', id).single()),
+    ok(sb.from('vinculos').select('id,jovem_acesso,consentimento_em,responsavel_id,profiles(nome,email)').eq('jovem_id', id)),
+    ok(sb.from('profiles').select('id,nome,email,papel').in('papel', ['responsavel', 'jovem']).order('nome')),
+    ok(sb.from('fichas_medicas').select('*').eq('jovem_id', id).maybeSingle()),
+    ok(sb.from('presencas').select('presente').eq('jovem_id', id)),
+  ]);
+  const nome = h('input', { value: j.nome, required: true });
+  const nasc = h('input', { type: 'date', value: j.nascimento || '' });
+  const ramo = sel([['', 'Sem ramo'], ...Object.entries(RAMOS)], j.ramo || '');
+  const ativo = h('input', { type: 'checkbox', checked: j.ativo });
+  const login = sel([['', 'Nenhum'], ...profs.filter(p => p.papel === 'jovem').map(p => [p.id, (p.nome || '') + ' (' + p.email + ')'])], j.user_id || '');
+  const dados = h('form', { class: 'card', onsubmit: run(async e => {
+    e.preventDefault();
+    await ok(sb.from('jovens').update({ nome: nome.value.trim(), nascimento: nasc.value || null, ramo: ramo.value || null,
+      ativo: ativo.checked, user_id: login.value || null }).eq('id', id));
+    toast('Dados salvos'); go('jovem', id);
+  }) }, h('h3', {}, 'Dados do jovem'), campo('Nome', nome), campo('Nascimento', nasc), campo('Ramo', ramo),
+    campo('Login do jovem (conta que ele mesmo criou e você marcou como "Jovem" em Usuários)', login),
+    h('label', { class: 'chk' }, ativo, 'Jovem ativo no grupo'), h('button', {}, 'Salvar'));
+
+  const ja = new Set(vincs.map(v => v.responsavel_id));
+  const resp = sel([['', 'Escolher responsável…'], ...profs.filter(p => p.papel === 'responsavel' && !ja.has(p.id)).map(p => [p.id, (p.nome || '') + ' (' + p.email + ')'])], '');
+  const vinc = h('div', { class: 'card' }, h('h3', {}, 'Responsáveis'),
+    ...vincs.map(v => h('div', { class: 'row' },
+      h('div', {}, h('b', {}, v.profiles?.nome || v.profiles?.email || '—'), h('br'),
+        h('small', { class: 'muted' }, 'Consentimento: ' + (v.consentimento_em ? 'registrado' : 'pendente') + ' · Acesso do jovem: ' + (v.jovem_acesso ? 'liberado' : 'não liberado'))),
+      h('button', { class: 'link perigo', onclick: run(async () => {
+        if (!confirm('Remover este vínculo?')) return;
+        await ok(sb.from('vinculos').delete().eq('id', v.id)); go('jovem', id);
+      }) }, 'Remover'))),
+    vincs.length ? null : h('p', { class: 'muted' }, 'Nenhum responsável vinculado.'),
+    h('div', { class: 'flex' }, resp, h('button', { onclick: run(async () => {
+      if (!resp.value) return;
+      await ok(sb.from('vinculos').insert({ responsavel_id: resp.value, jovem_id: id })); go('jovem', id);
+    }) }, 'Vincular')));
+
+  const presentes = pres.filter(p => p.presente).length;
+  return h('div', {},
+    h('button', { class: 'link', onclick: () => go('jovens') }, '← Voltar'), h('h2', {}, j.nome),
+    dados, vinc, fichaForm(id, ficha),
+    h('div', { class: 'card' }, h('h3', {}, 'Presença'), h('p', {}, pres.length ? `Presente em ${presentes} de ${pres.length} reuniões (${Math.round(100 * presentes / pres.length)}%).` : 'Sem registros de presença ainda.')),
+    h('button', { class: 'link perigo', onclick: run(async () => {
+      if (!confirm('Excluir este jovem e TODOS os dados dele (pagamentos, presenças, ficha)? Não dá para desfazer.')) return;
+      await ok(sb.from('jovens').delete().eq('id', id)); toast('Jovem excluído'); go('jovens');
+    }) }, 'Excluir jovem'));
+}
+
+/* ---------- PRESENÇA (chefe) ---------- */
+async function vPresenca() {
+  const rs = await ok(sb.from('reunioes').select('*').order('data', { ascending: false }).limit(60));
+  const data = h('input', { type: 'date', value: hoje(), required: true });
+  const tit = h('input', { placeholder: 'Ex.: Reunião de sábado', required: true });
+  const ramo = sel([['', 'Todos os ramos'], ...Object.entries(RAMOS)], '');
+  const form = h('form', { class: 'card', onsubmit: run(async e => {
+    e.preventDefault();
+    const r = await ok(sb.from('reunioes').insert({ data: data.value, titulo: tit.value.trim(), ramo: ramo.value || null }).select().single());
+    go('reuniao', r.id);
+  }) }, h('h3', {}, 'Nova reunião / atividade'), campo('Data', data), campo('Título', tit), campo('Ramo', ramo), h('button', {}, 'Criar e fazer a chamada'));
+  return h('div', {}, form, ...rs.map(r => h('div', { class: 'row clic', onclick: () => go('reuniao', r.id) },
+    h('span', {}, h('b', {}, dt(r.data)), ' · ' + r.titulo), h('span', { class: 'muted' }, r.ramo ? RAMOS[r.ramo] : 'Todos'))));
+}
+
+async function vReuniao(id) {
+  const r = await ok(sb.from('reunioes').select('*').eq('id', id).single());
+  let q = sb.from('jovens').select('id,nome').eq('ativo', true).order('nome');
+  if (r.ramo) q = q.eq('ramo', r.ramo);
+  const [jovens, pres] = await Promise.all([ok(q), ok(sb.from('presencas').select('*').eq('reuniao_id', id))]);
+  const mapa = new Map(pres.map(p => [p.jovem_id, p.presente]));
+  const cks = jovens.map(j => ({ j, el: h('input', { type: 'checkbox', checked: mapa.get(j.id) === true }) }));
+  return h('div', {},
+    h('button', { class: 'link', onclick: () => go('presenca') }, '← Voltar'),
+    h('h2', {}, r.titulo), h('p', { class: 'muted' }, dt(r.data) + (r.ramo ? ' · ' + RAMOS[r.ramo] : '')),
+    h('div', { class: 'card' },
+      h('div', { class: 'flex' },
+        h('button', { class: 'link', onclick: () => cks.forEach(c => c.el.checked = true) }, 'Marcar todos'),
+        h('button', { class: 'link', onclick: () => cks.forEach(c => c.el.checked = false) }, 'Desmarcar todos')),
+      ...cks.map(c => h('label', { class: 'chk' }, c.el, c.j.nome)),
+      jovens.length ? null : h('p', { class: 'muted' }, 'Nenhum jovem ativo neste ramo.'),
+      h('button', { onclick: run(async () => {
+        if (!cks.length) return;
+        await ok(sb.from('presencas').upsert(cks.map(c => ({ reuniao_id: id, jovem_id: c.j.id, presente: c.el.checked })), { onConflict: 'reuniao_id,jovem_id' }));
+        toast('Chamada salva: ' + cks.filter(c => c.el.checked).length + ' presente(s)');
+      }) }, 'Salvar chamada')),
+    h('button', { class: 'link perigo', onclick: run(async () => {
+      if (!confirm('Excluir esta reunião e a chamada dela?')) return;
+      await ok(sb.from('reunioes').delete().eq('id', id)); go('presenca');
+    }) }, 'Excluir reunião'));
+}
+
+/* ---------- USUÁRIOS (chefe) ---------- */
+async function vUsuarios() {
+  const profs = await ok(sb.from('profiles').select('*').order('criado_em', { ascending: false }));
+  profs.sort((a, b) => (b.papel === 'pendente') - (a.papel === 'pendente'));
+  return h('div', {}, h('p', { class: 'muted' }, 'Aprove quem se cadastrou escolhendo o papel. Marque "Financeiro" para quem cuida do caixa.'),
+    ...profs.map(p => {
+      const papel = sel(Object.entries(PAPEL), p.papel);
+      const fin = h('input', { type: 'checkbox', checked: p.is_financeiro });
+      return h('div', { class: 'card' },
+        h('b', {}, p.nome || '(sem nome)'), h('br'), h('small', { class: 'muted' }, p.email), h('br'), h('br'),
+        campo('Papel', papel), h('label', { class: 'chk' }, fin, 'Acesso ao financeiro'),
+        h('button', { onclick: run(async () => {
+          if (p.id === state.user.id && papel.value !== 'chefe' && !confirm('Você está tirando seu próprio papel de chefe. Continuar?')) return;
+          await ok(sb.from('profiles').update({ papel: papel.value, is_financeiro: fin.checked }).eq('id', p.id));
+          toast('Usuário atualizado'); go('usuarios');
+        }) }, 'Salvar'));
+    }));
+}
+
+/* ---------- RESPONSÁVEL: meus filhos ---------- */
+async function vFilhos() {
+  const vincs = await ok(sb.from('vinculos').select('jovem_id,jovem_acesso,consentimento_em,jovens(id,nome,nascimento,ramo)').eq('responsavel_id', state.user.id));
+  if (!vincs.length) return h('div', { class: 'card' }, h('p', {}, 'Nenhum jovem está vinculado à sua conta ainda. Peça a um chefe do grupo para fazer o vínculo.'));
+  const fichas = await ok(sb.from('fichas_medicas').select('*').in('jovem_id', vincs.map(v => v.jovem_id)));
+  const box = h('div', {});
+  vincs.forEach(v => {
+    const j = v.jovens || {};
+    const acesso = h('input', { type: 'checkbox', checked: v.jovem_acesso, onchange: run(async () => {
+      await ok(sb.rpc('definir_acesso_jovem', { p_jovem: v.jovem_id, p_ativo: acesso.checked }));
+      toast(acesso.checked ? 'Acesso do jovem liberado' : 'Acesso do jovem removido');
+    }) });
+    box.append(h('div', { class: 'card' },
+      h('h2', {}, j.nome || 'Jovem'), h('p', { class: 'muted' }, (RAMOS[j.ramo] || 'Sem ramo') + ' · Nascimento: ' + dt(j.nascimento)),
+      v.consentimento_em
+        ? h('p', { class: 'muted' }, '✅ Consentimento de uso dos dados registrado em ' + new Date(v.consentimento_em).toLocaleDateString('pt-BR'))
+        : h('div', { class: 'aviso-lgpd' },
+            h('p', {}, 'Os dados do seu filho(a) (identificação, ficha de saúde, presença e pagamentos) são usados apenas para a gestão do grupo escoteiro e ficam visíveis somente a quem precisa deles. Você pode pedir correção ou exclusão a qualquer momento ao chefe do grupo.'),
+            h('button', { onclick: run(async () => { await ok(sb.rpc('registrar_consentimento', { p_jovem: v.jovem_id })); toast('Consentimento registrado'); go('filhos'); }) }, 'Li e autorizo o uso dos dados')),
+      h('h3', {}, 'Procuração / acesso do jovem'),
+      h('label', { class: 'chk' }, acesso, 'Autorizo meu filho(a) a acessar o app com login próprio (somente visualização)')));
+    box.append(fichaForm(v.jovem_id, fichas.find(f => f.jovem_id === v.jovem_id)));
+  });
+  return box;
+}
+
+/* ---------- JOVEM: meu perfil ---------- */
+async function vMeuPerfil() {
+  const js = await ok(sb.from('jovens').select('*'));
+  if (!js.length) return h('div', { class: 'card' }, h('h2', {}, 'Acesso ainda não liberado'),
+    h('p', {}, 'Para ver seus dados, seu responsável precisa autorizar seu acesso no app, e o chefe precisa ligar seu login ao seu cadastro.'));
+  const j = js[0];
+  const pres = await ok(sb.from('presencas').select('presente').eq('jovem_id', j.id));
+  const pr = pres.filter(p => p.presente).length;
+  return h('div', { class: 'card' }, h('h2', {}, j.nome), h('p', {}, 'Ramo: ' + (RAMOS[j.ramo] || '—')), h('p', {}, 'Nascimento: ' + dt(j.nascimento)),
+    h('p', {}, pres.length ? `Presença: ${pr} de ${pres.length} reuniões (${Math.round(100 * pr / pres.length)}%)` : 'Presença: sem registros ainda.'));
+}
+
+/* ---------- PRESENÇAS (jovem / responsável) ---------- */
+async function vPresencas() {
+  const rows = await ok(sb.from('presencas').select('presente,jovens(nome),reunioes(data,titulo)'));
+  if (!rows.length) return h('div', { class: 'card' }, h('p', { class: 'muted' }, 'Nenhuma presença registrada ainda (ou o acesso ainda não foi liberado).'));
+  rows.sort((a, b) => (b.reunioes?.data || '').localeCompare(a.reunioes?.data || ''));
+  const grupos = new Map();
+  rows.forEach(r => { const n = r.jovens?.nome || '—'; if (!grupos.has(n)) grupos.set(n, []); grupos.get(n).push(r); });
+  return h('div', {}, ...[...grupos].map(([nome, rs]) => {
+    const pr = rs.filter(r => r.presente).length;
+    return h('div', { class: 'card' }, h('h3', {}, nome), h('p', { class: 'muted' }, `${pr} de ${rs.length} (${Math.round(100 * pr / rs.length)}%)`),
+      ...rs.slice(0, 30).map(r => h('div', { class: 'row' }, h('span', {}, dt(r.reunioes?.data) + ' · ' + (r.reunioes?.titulo || '')), h('span', {}, r.presente ? '✅ Presente' : '❌ Faltou'))));
+  }));
+}
+
+/* ---------- FINANCEIRO ---------- */
+async function vFinanceiro() {
+  const manage = !!state.perfil.is_financeiro;
+  const pags = await ok(sb.from('pagamentos').select('*,jovens(nome)').order('vencimento', { ascending: false }));
+  const jovens = manage ? await ok(sb.from('jovens').select('id,nome,ativo').order('nome')) : [];
+  const status = p => p.pago_em ? 'pago' : (p.vencimento < hoje() ? 'atrasado' : 'aberto');
+  const ROT = { pago: 'Pago', atrasado: 'Atrasado', aberto: 'Em aberto' };
+  const soma = f => pags.filter(f).reduce((s, p) => s + Number(p.valor), 0);
+
+  const resumo = h('div', { class: 'grid3' },
+    h('div', { class: 'card kpi ok' }, h('small', {}, 'Recebido'), h('b', {}, brl(soma(p => status(p) === 'pago')))),
+    h('div', { class: 'card kpi' }, h('small', {}, 'Em aberto'), h('b', {}, brl(soma(p => status(p) === 'aberto')))),
+    h('div', { class: 'card kpi bad' }, h('small', {}, 'Atrasado'), h('b', {}, brl(soma(p => status(p) === 'atrasado')))));
+
+  const nomes = [...new Set(pags.map(p => p.jovens?.nome).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const fSt = sel([['', 'Todos os status'], ['aberto', 'Em aberto'], ['atrasado', 'Atrasados'], ['pago', 'Pagos']], '', { onchange: () => desenha() });
+  const fNome = sel([['', 'Todos os jovens'], ...nomes.map(n => [n, n])], '', { onchange: () => desenha() });
+  const tabela = h('div', { class: 'card tabela' });
+
+  function desenha() {
+    const lista = pags.filter(p => (!fSt.value || status(p) === fSt.value) && (!fNome.value || p.jovens?.nome === fNome.value));
+    if (!lista.length) { tabela.replaceChildren(h('p', { class: 'muted' }, 'Nenhum lançamento encontrado.')); return; }
+    tabela.replaceChildren(h('table', {},
+      h('thead', {}, h('tr', {}, ...['Jovem', 'Descrição', 'Vencimento', 'Valor', 'Status', manage ? 'Ações' : null].filter(Boolean).map(t => h('th', {}, t)))),
+      h('tbody', {}, ...lista.map(p => h('tr', {},
+        h('td', {}, p.jovens?.nome || '—'), h('td', {}, p.descricao), h('td', {}, dt(p.vencimento)), h('td', {}, brl(p.valor)),
+        h('td', {}, h('span', { class: 'st ' + status(p) }, ROT[status(p)] + (p.pago_em ? ' em ' + dt(p.pago_em) : ''))),
+        manage ? h('td', {},
+          h('button', { class: 'link', onclick: run(async () => {
+            await ok(sb.from('pagamentos').update({ pago_em: p.pago_em ? null : hoje() }).eq('id', p.id)); go('financeiro');
+          }) }, p.pago_em ? 'Desfazer' : 'Marcar pago'),
+          h('button', { class: 'link perigo', onclick: run(async () => {
+            if (!confirm('Excluir este lançamento?')) return;
+            await ok(sb.from('pagamentos').delete().eq('id', p.id)); go('financeiro');
+          }) }, 'Excluir')) : null)))));
+  }
+  desenha();
+
+  const partes = [resumo];
+  if (manage) {
+    const fj = sel([['', 'Escolher jovem…'], ['todos', '★ Todos os jovens ativos'], ...jovens.map(j => [j.id, j.nome + (j.ativo ? '' : ' (inativo)')])], '');
+    const desc = h('input', { placeholder: 'Ex.: Mensalidade novembro', required: true });
+    const val = h('input', { type: 'number', step: '0.01', min: '0', required: true, placeholder: '0,00' });
+    const venc = h('input', { type: 'date', required: true });
+    partes.push(h('form', { class: 'card', onsubmit: run(async e => {
+      e.preventDefault();
+      if (!fj.value) { toast('Escolha o jovem', true); return; }
+      const alvo = fj.value === 'todos' ? jovens.filter(j => j.ativo) : [{ id: fj.value }];
+      if (!alvo.length) { toast('Nenhum jovem ativo', true); return; }
+      await ok(sb.from('pagamentos').insert(alvo.map(j => ({ jovem_id: j.id, descricao: desc.value.trim(), valor: parseFloat(val.value), vencimento: venc.value }))));
+      toast(alvo.length + ' lançamento(s) criado(s)'); go('financeiro');
+    }) }, h('h3', {}, 'Novo lançamento'), campo('Jovem', fj), campo('Descrição', desc), campo('Valor (R$)', val), campo('Vencimento', venc), h('button', {}, 'Lançar')));
+  } else {
+    partes.push(h('p', { class: 'muted' }, 'Somente visualização. Dúvidas sobre pagamentos? Fale com o financeiro do grupo.'));
+  }
+  partes.push(h('div', { class: 'flex' }, fSt, fNome));
+  partes.push(tabela);
+  if (manage) partes.push(h('button', { class: 'link', onclick: () => {
+    const linhas = [['Jovem', 'Descrição', 'Vencimento', 'Valor', 'Status', 'Pago em'], ...pags.map(p => [p.jovens?.nome || '', p.descricao, p.vencimento, String(p.valor).replace('.', ','), ROT[status(p)], p.pago_em || ''])];
+    const csv = '\ufeff' + linhas.map(l => l.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+    const a = h('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), download: 'financeiro-' + hoje() + '.csv' });
+    document.body.append(a); a.click(); a.remove();
+  } }, '⬇ Baixar planilha (CSV)'));
+  return h('div', {}, ...partes);
+}
+
+const VIEWS = { avisos: vAvisos, jovens: vJovens, jovem: vJovem, presenca: vPresenca, reuniao: vReuniao, usuarios: vUsuarios,
+  filhos: vFilhos, meuperfil: vMeuPerfil, presencas: vPresencas, financeiro: vFinanceiro };
+
+/* ---------- partida ---------- */
+if (SUPABASE_URL.startsWith('COLE_AQUI')) {
+  $app.append(h('div', { class: 'card login' }, h('h2', {}, 'Falta configurar'),
+    h('p', {}, 'Abra o arquivo index.html e troque SUPABASE_URL e SUPABASE_ANON_KEY pelos dados do seu projeto Supabase (passo 5 do GUIA.md).')));
+} else {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+    if (event === 'PASSWORD_RECOVERY') { setTimeout(renderRecovery, 0); return; }
+    if (event === 'SIGNED_IN' && session && state.user && session.user.id === state.user.id) return;
+    setTimeout(() => boot(session), 0);
+  });
+}
+</script>
+
+</body>
+</html>
