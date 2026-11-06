@@ -1,0 +1,379 @@
+/* =====================================================================
+   GRUPO ESCOTEIRO — style.css
+
+   ÍNDICE
+   1. Variáveis (cores, medidas)  ← mude as cores aqui
+   2. Base
+   3. Topo e menu
+   4. Conteúdo e cartões
+   5. Formulários
+   6. Botões
+   7. Listas
+   8. Financeiro (resumo, tabela, status)
+   9. Avisos e mensagens
+   10. Utilitários
+   11. Celular
+   ===================================================================== */
+
+
+/* ---------------------------------------------------------------------
+   1. VARIÁVEIS
+   --------------------------------------------------------------------- */
+:root {
+  /* cores principais */
+  --verde-escuro: #1b5e20;   /* topo da página */
+  --verde:        #2e7d32;   /* botões e destaques */
+  --amarelo:      #f9a825;   /* etiqueta do papel (Chefe, Jovem...) */
+
+  /* fundo e texto */
+  --fundo:        #f4f6f1;
+  --branco:       #ffffff;
+  --texto:        #1f2a1f;
+  --texto-suave:  #6b776b;
+
+  /* linhas e superfícies */
+  --borda:        #c5cdc0;
+  --linha:        #eef1ea;
+  --superficie:   #eef2ea;
+
+  /* estados */
+  --ok:           #2e7d32;
+  --erro:         #b3261e;
+
+  /* medidas */
+  --raio:         12px;
+  --raio-pequeno: 8px;
+  --largura:      900px;
+  --sombra:       0 1px 3px rgba(0, 0, 0, .08);
+}
+
+
+/* ---------------------------------------------------------------------
+   2. BASE
+   --------------------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
+  color: var(--texto);
+  background: var(--fundo);
+}
+
+h2 { margin: .2em 0 .6em; }
+h3 { margin: .1em 0 .6em; }
+p  { margin: 0 0 .8em; }
+
+/* faz o atributo "hidden" do HTML sempre esconder o elemento */
+[hidden] { display: none !important; }
+
+
+/* ---------------------------------------------------------------------
+   3. TOPO E MENU
+   --------------------------------------------------------------------- */
+header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: #fff;
+  background: var(--verde-escuro);
+}
+
+.brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.quem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: .9rem;
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: #222;
+  background: var(--amarelo);
+}
+
+nav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 16px;
+  background: var(--branco);
+  border-bottom: 1px solid #dde3d8;
+}
+
+nav button {
+  padding: 8px 16px;
+  border-radius: 99px;
+  white-space: nowrap;
+  color: var(--texto);
+  background: var(--superficie);
+}
+
+nav button:hover { background: #e0e8da; filter: none; }
+
+nav button.on {
+  color: #fff;
+  background: var(--verde);
+}
+
+
+/* ---------------------------------------------------------------------
+   4. CONTEÚDO E CARTÕES
+   --------------------------------------------------------------------- */
+main {
+  max-width: var(--largura);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.card {
+  margin-bottom: 14px;
+  padding: 16px;
+  background: var(--branco);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+/* cartão estreito e centralizado (tela de login) */
+.login {
+  max-width: 380px;
+  margin: 40px auto;
+}
+
+
+/* ---------------------------------------------------------------------
+   5. FORMULÁRIOS
+   --------------------------------------------------------------------- */
+input,
+select,
+textarea {
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 10px;
+  font: inherit;
+  color: inherit;
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--verde);
+  outline-offset: 1px;
+  border-color: var(--verde);
+}
+
+input[type="checkbox"] {
+  width: auto;
+  margin: 0 8px 0 0;
+}
+
+/* rótulo pequeno em cima do campo */
+label.campo span {
+  display: block;
+  margin-top: 4px;
+  font-size: .8rem;
+  color: var(--texto-suave);
+}
+
+/* caixinha de marcar com o texto ao lado */
+label.chk {
+  display: flex;
+  align-items: center;
+  margin: 6px 0 12px;
+}
+
+
+/* ---------------------------------------------------------------------
+   6. BOTÕES
+   --------------------------------------------------------------------- */
+button {
+  padding: 10px 16px;
+  font: inherit;
+  color: #fff;
+  background: var(--verde);
+  border: 0;
+  border-radius: var(--raio-pequeno);
+  cursor: pointer;
+}
+
+button:hover    { filter: brightness(1.08); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+button:focus-visible {
+  outline: 2px solid var(--amarelo);
+  outline-offset: 2px;
+}
+
+/* botão que parece um link */
+button.link {
+  padding: 4px 8px;
+  color: var(--verde);
+  background: none;
+  text-decoration: underline;
+}
+
+/* ação perigosa (excluir, remover) */
+.perigo,
+button.link.perigo { color: var(--erro); }
+
+
+/* ---------------------------------------------------------------------
+   7. LISTAS
+   --------------------------------------------------------------------- */
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+/* linha clicável (lista de jovens, de reuniões) */
+.row.clic {
+  margin-bottom: 6px;
+  padding: 12px;
+  background: var(--branco);
+  border: 1px solid #e3e8de;
+  border-radius: var(--raio-pequeno);
+  cursor: pointer;
+}
+
+.row.clic:hover { background: #f0f5ec; }
+
+/* itens lado a lado */
+.flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flex select { margin: 0; }
+
+
+/* ---------------------------------------------------------------------
+   8. FINANCEIRO
+   --------------------------------------------------------------------- */
+
+/* cartões de resumo (Recebido / Em aberto / Atrasado) */
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi b       { font-size: 1.3rem; }
+.kpi.ok b    { color: var(--ok); }
+.kpi.bad b   { color: var(--erro); }
+
+/* tabela */
+.tabela { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .92rem;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--linha);
+}
+
+th {
+  font-size: .8rem;
+  color: var(--texto-suave);
+}
+
+/* etiqueta de status do pagamento */
+.st {
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.st.pago     { color: #1b5e20; background: #d7ecd9; }
+.st.aberto   { color: #7a5b00; background: #fff3cd; }
+.st.atrasado { color: #8c1d18; background: #f9d6d3; }
+
+
+/* ---------------------------------------------------------------------
+   9. AVISOS E MENSAGENS
+   --------------------------------------------------------------------- */
+
+/* caixa amarela de consentimento (LGPD) */
+.aviso-lgpd {
+  margin-bottom: 12px;
+  padding: 12px;
+  font-size: .9rem;
+  background: #fff8e1;
+  border: 1px solid #f0d98a;
+  border-radius: var(--raio-pequeno);
+}
+
+/* mensagem que aparece por alguns segundos no pé da tela */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  z-index: 9;
+  max-width: 90%;
+  padding: 10px 18px;
+  color: #fff;
+  background: #222;
+  border-radius: var(--raio-pequeno);
+  transform: translateX(-50%);
+}
+
+.toast.erro { background: var(--erro); }
+
+
+/* ---------------------------------------------------------------------
+   10. UTILITÁRIOS
+   --------------------------------------------------------------------- */
+.muted { color: var(--texto-suave); }
+.erro  { color: var(--erro); }
+.pre   { white-space: pre-wrap; }   /* respeita as quebras de linha digitadas */
+
+
+/* ---------------------------------------------------------------------
+   11. CELULAR
+   --------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  main  { padding: 12px; }
+  .card { padding: 14px; }
+  .login { margin: 20px auto; }
+
+  /* evita o zoom automático do iPhone ao tocar num campo */
+  input,
+  select,
+  textarea { font-size: 16px; }
+}
