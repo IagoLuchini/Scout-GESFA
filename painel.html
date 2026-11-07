@@ -77,13 +77,14 @@
 
   <!-- ============ JOVENS (chefe) ============ -->
   
+
 <section id="tela-jovens" hidden>
   <form id="form-jovem-novo" class="card">
 
     <h3>Cadastrar jovem</h3>
     <p class="muted">
       Preencha os dados do jovem e de seus responsáveis.
-      Os campos marcados com * são obrigatórios.
+      (*) Campos obrigatórios.
     </p>
 
     <!-- 1. DADOS PESSOAIS -->
@@ -157,17 +158,33 @@
       <span>Estado *</span>
       <select name="estado" required>
         <option value="">Selecione</option>
-        <option value="SP">São Paulo</option>
-        <option value="RJ">Rio de Janeiro</option>
-        <option value="MG">Minas Gerais</option>
-        <option value="ES">Espírito Santo</option>
-        <option value="PR">Paraná</option>
-        <option value="SC">Santa Catarina</option>
-        <option value="RS">Rio Grande do Sul</option>
+        <option value="AC">Acre</option>
+        <option value="AL">Alagoas</option>
+        <option value="AP">Amapá</option>
+        <option value="AM">Amazonas</option>
         <option value="BA">Bahia</option>
-        <option value="GO">Goiás</option>
+        <option value="CE">Ceará</option>
         <option value="DF">Distrito Federal</option>
-        <option value="Outro">Outro</option>
+        <option value="ES">Espírito Santo</option>
+        <option value="GO">Goiás</option>
+        <option value="MA">Maranhão</option>
+        <option value="MT">Mato Grosso</option>
+        <option value="MS">Mato Grosso do Sul</option>
+        <option value="MG">Minas Gerais</option>
+        <option value="PA">Pará</option>
+        <option value="PB">Paraíba</option>
+        <option value="PR">Paraná</option>
+        <option value="PE">Pernambuco</option>
+        <option value="PI">Piauí</option>
+        <option value="RJ">Rio de Janeiro</option>
+        <option value="RN">Rio Grande do Norte</option>
+        <option value="RS">Rio Grande do Sul</option>
+        <option value="RO">Rondônia</option>
+        <option value="RR">Roraima</option>
+        <option value="SC">Santa Catarina</option>
+        <option value="SP">São Paulo</option>
+        <option value="SE">Sergipe</option>
+        <option value="TO">Tocantins</option>
       </select>
     </label>
 
@@ -251,64 +268,47 @@
 
     <label class="campo">
       <span>Possui alergias? *</span>
-      <select name="alergia" id="alergia" required>
+      <select name="alergia" required>
         <option value="">Selecione</option>
         <option value="nao">Não</option>
         <option value="sim">Sim</option>
       </select>
     </label>
 
-    
-<h4>5. Saúde e segurança</h4>
+    <label class="campo">
+      <span>Descrição das alergias (Opcional)</span>
+      <textarea name="alergias"
+        placeholder="Informe quais são as alergias..."></textarea>
+    </label>
 
-<label class="campo">
-  <span>Possui alergias? *</span>
-  <select name="alergia" required>
-    <option value="">Selecione</option>
-    <option value="nao">Não</option>
-    <option value="sim">Sim</option>
-  </select>
-</label>
+    <label class="campo">
+      <span>Utiliza medicamentos? (Recomendado)</span>
+      <select name="usa_medicamento">
+        <option value="">Selecione</option>
+        <option value="nao">Não</option>
+        <option value="sim">Sim</option>
+      </select>
+    </label>
 
-<div id="campo-alergias" hidden>
-  <label class="campo">
-    <span>Quais alergias?</span>
-    <textarea name="alergias"></textarea>
-  </label>
-</div>
+    <label class="campo">
+      <span>Quais medicamentos? (Opcional)</span>
+      <textarea name="medicamentos"
+        placeholder="Informe os medicamentos e cuidados necessários..."></textarea>
+    </label>
 
-<label class="campo">
-  <span>Utiliza medicamentos?</span>
-  <select name="usa_medicamento">
-    <option value="">Selecione</option>
-    <option value="nao">Não</option>
-    <option value="sim">Sim</option>
-  </select>
-</label>
+    <label class="campo">
+      <span>Possui restrições alimentares? (Recomendado)</span>
+      <select name="tem_restricao">
+        <option value="">Selecione</option>
+        <option value="nao">Não</option>
+        <option value="sim">Sim</option>
+      </select>
+    </label>
 
-<div id="campo-medicamentos" hidden>
-  <label class="campo">
-    <span>Quais medicamentos?</span>
-    <textarea name="medicamentos"></textarea>
-  </label>
-</div>
-
-<label class="campo">
-  <span>Possui restrições alimentares?</span>
-  <select name="tem_restricao">
-    <option value="">Selecione</option>
-    <option value="nao">Não</option>
-    <option value="sim">Sim</option>
-  </select>
-</label>
-
-<div id="campo-alimentacao" hidden>
-  <label class="campo">
-    <span>Quais restrições?</span>
-    <textarea name="alimentacao"></textarea>
-  </label>
-</div>
-
+    <label class="campo">
+      <span>Quais restrições? (Opcional)</span>
+      <textarea name="alimentacao"></textarea>
+    </label>
 
     <label class="campo">
       <span>Cuidados importantes (Opcional)</span>
@@ -331,7 +331,7 @@
     </label>
 
 
-    <!-- 6. EMERGÊNCIA -->
+    <!-- 6. CONTATO DE EMERGÊNCIA -->
     <h4>6. Contato de emergência</h4>
 
     <label class="campo">
@@ -383,7 +383,8 @@
 
     <label class="campo">
       <span>Pessoas autorizadas a buscar (Recomendado)</span>
-      <textarea name="busca" placeholder="Nome e telefone das pessoas autorizadas..."></textarea>
+      <textarea name="busca"
+        placeholder="Informe os nomes e telefones..."></textarea>
     </label>
 
     <label class="campo">
@@ -392,7 +393,7 @@
     </label>
 
 
-    <!-- CADASTRO -->
+    <!-- FINALIZAÇÃO -->
     <button type="submit">Cadastrar jovem</button>
 
   </form>
