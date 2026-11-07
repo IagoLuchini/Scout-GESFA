@@ -438,61 +438,14 @@ async function tFinanceiro() {
   });
 
 
-// EXPORTAÇÃO DE DADOS FINANCEIROS PARA CSV
-
-$('#btn-csv').onclick = () => {
-
-  // Verifica se existem pagamentos
-  if (!pags || pags.length === 0) {
-    alert('Não existem pagamentos para exportar.');
-    return;
-  }
-
-  // Cabeçalho da planilha
-  const linhas = [
-    ['Jovem', 'Descrição', 'Vencimento', 'Valor', 'Status', 'Pago em'],
-
-    ...pags.map(p => [
-      p.jovens?.nome || 'Não informado',
-      p.descricao || 'Sem descrição',
-      p.vencimento || '',
-      Number(p.valor || 0).toFixed(2).replace('.', ','),
-      ROT[status(p)] || 'Não informado',
-      p.pago_em || ''
-    ])
-  ];
-
-  // Escapa os dados para evitar erros no CSV
-  const formatarCSV = valor =>
-    '"' + String(valor ?? '').replace(/"/g, '""') + '"';
-
-  // Converte os dados em texto CSV
-  const csv = '\uFEFF' + linhas
-    .map(linha => linha.map(formatarCSV).join(';'))
-    .join('\r\n');
-
-  // Cria o arquivo
-  const arquivo = new Blob(
-    [csv],
-    { type: 'text/csv;charset=utf-8;' }
-  );
-
-  // Cria o link temporário para download
-  const url = URL.createObjectURL(arquivo);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = `financeiro-${hoje()}.csv`;
-
-  // Realiza o download
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  // Libera a memória utilizada
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-};
+// planilha CSV
+  $('#btn-csv').onclick = () => {
+    const linhas = [['Jovem', 'Descrição', 'Vencimento', 'Valor', 'Status', 'Pago em'],
+      ...pags.map(p => [p.jovens?.nome || '', p.descricao, p.vencimento, String(p.valor).replace('.', ','), ROT[status(p)], p.pago_em || ''])];
+    const csv = '﻿' + linhas.map(l => l.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+    const a = h('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), download: 'financeiro-' + hoje() + '.csv' });
+    document.body.append(a); a.click(); a.remove();
+  };
 
 
 const TELAS = {
